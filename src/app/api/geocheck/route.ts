@@ -2,17 +2,42 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const RESTRICTED_CODES = new Set(['US', 'CA', 'CN'])
 
+/**
+ * GET /api/geocheck
+ *
+ * Checks the visitor's country via IP geolocation.
+ * - In development mode: always returns unrestricted (geo-block disabled).
+ * - In production: checks x-forwarded-for → x-real-ip → fallback,
+ *   then queries ip-api.com. Any lookup failure → fail open (unrestricted).
+ */
 export async function GET(request: NextRequest) {
-  try {
-    const forwarded = request.headers.get('x-forwarded-for')
-    const ip = forwarded
-      ? forwarded.split(',')[0].trim()
-      : request.headers.get('x-real-ip') ?? '127.0.0.1'
+  // In development/demo mode, skip geo-blocking entirely
+  if (process.env.NODE_ENV === 'development') {
+    return NextResponse.json({ restricted: false, countryCode: 'DEV' })
+  }
 
-    // Skip lookup for private/local IPs or missing IPs — fail open
-    if (!ip || ip === 'unknown' || ip === '127.0.0.1' || ip === '::1' ||
-        ip.startsWith('192.168.') || ip.startsWith('10.') ||
-        ip.startsWith('172.') || ip.startsWith('169.254.')) {
+  try {
+    // Extract the real client IP from reverse proxy headers
+    // Caddy, Cloudflare, Vercel all set x-forwarded-for
+    const forwarded = request.headers.get('x-forwarded-for')
+    const realIp = request.headers.get('x-real-ip')
+    const cfIp = request.headers.get('cf-connecting-ip')
+
+    let ip = cfIp || (forwarded ? forwarded.split(',')[0].trim() : realIp) || '127.0.0.1'
+
+    // Skip lookup for private/local/missing IPs — fail open
+    const isPrivate =
+      !ip ||
+      ip === 'unknown' ||
+      ip === '127.0.0.1' ||
+      ip === '::1' ||
+      ip.startsWith('192.168.') ||
+      ip.startsWith('10.') ||
+      ip.startsWith('172.') ||
+      ip.startsWith('169.254.') ||
+      ip.startsWith('100.') // Carrier-grade NAT
+
+    if (isPrivate) {
       return NextResponse.json({ restricted: false, countryCode: 'LOCAL' })
     }
 
@@ -31,6 +56,12 @@ export async function GET(request: NextRequest) {
       }
 
       const geo = (await geoRes.json()) as { status: string; countryCode?: string }
+
+      // If ip-api returns an error (rate limit, etc.), fail open
+      if (geo.status !== 'success') {
+        return NextResponse.json({ restricted: false, countryCode: 'UNKNOWN' })
+      }
+
       const countryCode = geo.countryCode ?? 'UNKNOWN'
 
       return NextResponse.json({
@@ -38,12 +69,13 @@ export async function GET(request: NextRequest) {
         countryCode,
       })
     } catch {
-      // Timeout or fetch error — fail open
+      // Timeout or fetch error — fail open (don't block anyone on API failure)
       return NextResponse.json({ restricted: false, countryCode: 'UNKNOWN' })
     } finally {
       clearTimeout(timeoutId)
     }
   } catch {
+    // Any unexpected error — fail open
     return NextResponse.json({ restricted: false, countryCode: 'UNKNOWN' })
   }
 }

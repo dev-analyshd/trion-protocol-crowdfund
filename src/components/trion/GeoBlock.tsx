@@ -56,10 +56,16 @@ export default function GeoBlock({ children }: { children: React.ReactNode }) {
             <p className="text-muted-foreground text-sm leading-relaxed mb-2">
               Region detected: <span className="text-destructive font-bold">{countryCode}</span>
             </p>
-            <p className="text-xs text-muted-foreground mt-6">
-              This restriction applies to residents of the United States, Canada, and China in compliance with local securities regulations.
+            <p className="text-xs text-muted-foreground mt-4 mb-6">
+              This restriction applies to residents of the United States, Canada, and China in compliance with local securities regulations. If you believe this is an error, contact support.
             </p>
-            <div className="mt-6">
+            <button
+              onClick={() => setIsRestricted(false)}
+              className="px-6 py-2 rounded-lg bg-secondary text-foreground text-sm font-medium hover:bg-accent transition-colors"
+            >
+              I understand — continue anyway
+            </button>
+            <div className="mt-4">
               <p className="text-xs text-muted-foreground font-mono">ERR_GEO::JURISDICTION_BLOCKED</p>
             </div>
           </div>
