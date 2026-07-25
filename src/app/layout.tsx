@@ -16,15 +16,10 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "TRION Protocol — Founding Citizen Crowdfund",
-  description: "Fund the Immune System of the Internet. Join the TRION Protocol as a Founding Citizen. Early governance tokens, soulbound NFTs, and a stake in the post-truth infrastructure.",
-  keywords: ["TRION", "Web3", "Crowdfund", "Soulbound NFT", "Governance", "DeFi"],
+  description: "Fund the Immune System of the Internet. Join the TRION Protocol as a Founding Citizen.",
+  keywords: ["TRION", "Web3", "Crowdfund", "Soulbound NFT", "Governance"],
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
-  },
-  openGraph: {
-    title: "TRION Protocol",
-    description: "Fund the Immune System of the Internet",
-    type: "website",
+    icon: "/trion-logo.png",
   },
 };
 
@@ -34,9 +29,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground font-mono noise-overlay`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
         <Providers>
           {children}
