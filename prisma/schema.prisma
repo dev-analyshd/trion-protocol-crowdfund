@@ -1,0 +1,50 @@
+// This is your Prisma schema file for the TRION Crowdfund Platform
+// Replaces Supabase for legal compliance tracking
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Crowdfunder records for legal compliance (KYC-lite)
+model Citizen {
+  id              String   @id @default(cuid())
+  email           String   @unique
+  walletAddress   String   @unique
+  tier            String   @default("bronze") // bronze | silver | gold
+  contributionAmount String @default("0") // in ETH wei
+  tokenAllocation String   @default("0") // TRIO tokens (18 decimals)
+  nftTokenId      String?
+  jurisdiction    String?  // Country code
+  hasAgreedTerms  Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  contributions  Contribution[]
+}
+
+// Individual contribution records
+model Contribution {
+  id              String   @id @default(cuid())
+  citizenId       String
+  amount          String   // in ETH wei
+  currency        String   @default("ETH") // ETH | USDC
+  txHash          String?
+  status          String   @default("pending") // pending | confirmed | failed
+  createdAt       DateTime @default(now())
+
+  citizen         Citizen   @relation(fields: [citizenId], references: [id], onDelete: Cascade)
+}
+
+// Global crowdfund stats
+model CrowdfundStats {
+  id              String   @id @default(cuid())
+  totalContributions String @default("0")
+  totalContributors   Int    @default(0)
+  fundingGoal         String @default("250000000000000000000000") // 250K ETH wei
+  updatedAt       DateTime @updatedAt
+}
